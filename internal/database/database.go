@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	// "os"
 	"strconv"
 	"time"
 
@@ -32,7 +31,7 @@ type Service interface {
 	Close() error
 
 	// Inserts a new user into the database
-	InsertNewUser(user User) string
+	InsertNewUser(user User) int
 }
 
 type service struct {
@@ -40,11 +39,7 @@ type service struct {
 }
 
 var (
-	database   = enums.Database
-	password   = enums.Password
-	username   = enums.Username
-	port       = enums.Port
-	host       = enums.Host
+	database   = string(enums.Database)
 	dbInstance *service
 )
 
@@ -54,16 +49,11 @@ func New(connectionString string) Service {
 		return dbInstance
 	}
 
-	// connStr := fmt.Sprintf("postgres://%s:%s/%s?user=%s&password=%s&sslmode=disable", host, port, database, username, password)
-	// connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/?sslmode=disable&search_path=%s", username, password, host, port, database)
-
-	fmt.Println(" [conn string] ------------>>> ", connectionString)
-
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbInstance = &service{
+	dbInstance = &service {
 		db: db,
 	}
 	return dbInstance
@@ -120,19 +110,20 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) InsertNewUser(user User) string {
-	fmt.Println("Inserting user:", user)
+func (s *service) InsertNewUser(user User) int {
 
+	statement := "INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id"
 
-	query, err := s.db.Prepare("INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id")
+	query, err := s.db.Prepare(statement)
 	if err != nil { log.Fatal(err) }
 
 	err = query.QueryRow(user.Username, user.Email).Scan(&user.ID)
 	if err != nil { log.Fatal(err) }
 
-	fmt.Printf("Inserted new user with ID %d\n", user.ID)
 
-	return ""
+	log.Println("SQL query:", statement)
+
+	return user.ID
 }
 
 // Close closes the database connection.

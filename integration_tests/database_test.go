@@ -62,11 +62,11 @@ func mustStartPostgresContainer() (func(context.Context) error, error) {
 	containerPort = strings.ReplaceAll(string(dbPort), "tcp", "")
 	containerPort = strings.ReplaceAll(containerPort, "/", "")
 
-	anonymousFunction := func(host, port string) string {
+	connectionString := func(host, port string) string {
 		return fmt.Sprintf("Connected to %s, on port: %s", host, port)
-	}(dbHost, string(dbPort))
+	}(contaierHost, containerPort)
 
-	fmt.Println(anonymousFunction)
+	fmt.Println(connectionString)
 
 	return dbContainer.Terminate, err
 }
@@ -85,16 +85,26 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
-	srv := db.New("")
+
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	srv := db.New(dataSourceName)
 	if srv == nil {
 		t.Fatal("New() returned nil")
 	}
 }
 
 func TestHealth(t *testing.T) {
-	srv := db.New("")
 
-	stats := srv.Health()
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	underTest := db.New(dataSourceName)
+
+	stats := underTest.Health()
 
 	if stats["status"] != "up" {
 		t.Fatalf("expected status to be up, got %s", stats["status"])
@@ -110,10 +120,9 @@ func TestHealth(t *testing.T) {
 }
 
 // go test -v -run TestInsertNewUser ./integration_tests/database_test.go
-// https://copilot.microsoft.com/chats/yMCaqPufRL6jU62Mk7gjk
 func TestInsertNewUser(t *testing.T) {
+	//ID defaults to 0 when not provided
 	userForInsertion := db.User{
-		ID: 1,
 		Username: "test user",
 		Email: "test@email.com",
 	}
@@ -122,45 +131,42 @@ func TestInsertNewUser(t *testing.T) {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
 	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
 
-	srv := db.New(dataSourceName)
+	underTest := db.New(dataSourceName)
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		log.Fatal(err) 
 	}
+	defer sqlDb.Close()
 
 	if err := goose.Up(sqlDb, "../migrations"); err != nil {
 		log.Fatal(err)
 	}
 
-	srv.InsertNewUser(userForInsertion)
-
-
-	// query2, err := sqlDb.Query("SELECT id, username, email FROM users")
-	// if err != nil { log.Fatal(err) } 
-	// // defer db.Close()
+	userId := underTest.InsertNewUser(userForInsertion)
 
 	var count int
 	err = sqlDb.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil { log.Fatal(err) } 
 
-	fmt.Println("result of count:  --> ", count)
+	if underTest.Close() != nil {
+		t.Fatalf("expected Close() to return no errors")
+	}
 
-	srv.Close()
-	
-	// goose_db_version
-	// users
-	// defer rows.Close()
-
-	// if srv.InsertNewUser(userForInsertion) != "" {
-	// 	t.Fatalf("expected InsertNewUser() to return empty string")
-	// }
+	if count != 1 && userId != 1 {
+		t.Fatalf("expected InsertNewUser() to insert a user and the count query to return 1")
+	}
 }
 
 func TestClose(t *testing.T) {
-	srv := db.New("")
+
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	srv := db.New(dataSourceName)
 
 	if srv.Close() != nil {
-		t.Fatalf("expected Close() to return nil")
+		t.Fatalf("expected Close() to return no errors")
 	}
 }

@@ -119,6 +119,12 @@ make clean
 
 ## Running Individual Tests:
 
+All integration tests:
+
+```bash
+make itest
+```
+
 ```bash
 go test -v -run TestInsertNewUser ./integration_tests/database_test.go
 ```
