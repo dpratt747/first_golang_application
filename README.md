@@ -48,16 +48,10 @@ Installation:
 ```bash
 git clone https://github.com/zephinzer/godev.git
 cd godev
-
 ```
--   
--   cd godev
--   go build -o $(go env GOPATH)/bin/godev
--   $(go env GOPATH)/bin/godev --version
 
-Running Go-blueprint:
-
--   go-blueprint create --name db_access --framework gin --driver postgres
+* godev init <project_name>
+* godev run
 
 ---
 
