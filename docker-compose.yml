@@ -1,0 +1,35 @@
+services:
+    postgres:
+        image: postgres:latest
+        restart: unless-stopped
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=golang_db
+        ports:
+            - "5432:5432"
+## Building
+# docker-compose build --no-cache
+
+# Running the container
+# docker-compose up -d postgres
+
+## How to clean docker cache
+
+# Kill all running containers
+# docker kill $(docker ps -q)
+
+# Delete all stopped containers
+# docker rm $(docker ps -a -q)
+
+# Delete all images
+# docker rmi $(docker images -q)
+
+# Remove unused data
+# docker system prune
+
+# Clean networks:
+# docker network prune
+
+# And some more
+# docker system prune -af
