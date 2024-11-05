@@ -1,13 +1,8 @@
 <!-- First steps -->
 
-### Need to add a db migration tool
+### Db migration tool
 
-options are:
-
--   Golang-migrate
 -   [Goose](https://github.com/pressly/goose)
--   Atlas
-
 Going to use Goose for this project:
 
 ```bash
@@ -19,6 +14,10 @@ go get github.com/pressly/goose/v3@latest
 ```
 
 ```bash
+go mod init <your_module_name>
+```
+
+```bash
 cd migrations
 ```
 
@@ -27,14 +26,17 @@ goose -s create new_user_table.sql
 ```
 
 ---
+## Migrations:
 
 ```bash
-go mod init your_module_name
+goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
 ```
 
 ```bash
-go get github.com/golang-migrate/migrate/v4
+goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 ```
+
+---
 
 `go.sum` Is generated and updated automatically. It records the expected cryptographic checksums of the content of specific module versions, ensuring that future downloads of these modules are consistent and secure
 
@@ -43,8 +45,12 @@ go get github.com/golang-migrate/migrate/v4
 [godev](https://github.com/zephinzer/godev)
 
 Installation:
+```bash
+git clone https://github.com/zephinzer/godev.git
+cd godev
 
--   git clone https://github.com/zephinzer/godev.git
+```
+-   
 -   cd godev
 -   go build -o $(go env GOPATH)/bin/godev
 -   $(go env GOPATH)/bin/godev --version
