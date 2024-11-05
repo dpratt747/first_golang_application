@@ -5,12 +5,28 @@
 options are:
 
 -   Golang-migrate
--   Goose
+-   [Goose](https://github.com/pressly/goose)
 -   Atlas
 
-Going to use golang-migrate for this project:
+Going to use Goose for this project:
 
--   Create a go.mod file for dependencies. Equivilant is build.sbt/requirements file
+```bash
+go install github.com/pressly/goose/v3/cmd/goose@latest
+```
+
+```bash
+go get github.com/pressly/goose/v3@latest
+```
+
+```bash
+cd migrations
+```
+
+```bash
+goose -s create new_user_table.sql
+```
+
+---
 
 ```bash
 go mod init your_module_name
@@ -97,4 +113,30 @@ Clean up binary from the last build:
 
 ```bash
 make clean
+```
+
+---
+
+## Running Individual Tests:
+
+```bash
+go test -v -run TestInsertNewUser ./integration_tests/database_test.go
+```
+
+Add postgres driver:
+
+```bash
+go get github.com/lib/pq
+```
+
+## Database migrations
+
+```bash
+goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
+```
+
+## Undo migrations
+
+```bash
+goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 ```

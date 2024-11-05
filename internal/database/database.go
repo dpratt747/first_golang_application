@@ -15,6 +15,12 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+type User struct {
+	ID int
+	Username string
+	Email string
+}
+
 // Service represents a service that interacts with a database.
 type Service interface {
 	// Health returns a map of health status information.
@@ -24,6 +30,9 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	// Inserts a new user into the database
+	InsertNewUser(user User) string
 }
 
 type service struct {
@@ -39,18 +48,18 @@ var (
 	dbInstance *service
 )
 
-func New() Service {
+func New(connectionString string) Service {
 	// Reuse Connection
 	if dbInstance != nil {
 		return dbInstance
 	}
 
-	// connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s?sslmode=disable&search_path=%s", username, password, host, port, database)
+	// connStr := fmt.Sprintf("postgres://%s:%s/%s?user=%s&password=%s&sslmode=disable", host, port, database, username, password)
+	// connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/?sslmode=disable&search_path=%s", username, password, host, port, database)
 
-	fmt.Println(connStr)
+	fmt.Println(" [conn string] ------------>>> ", connectionString)
 
-	db, err := sql.Open("pgx", connStr)
+	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,6 +118,21 @@ func (s *service) Health() map[string]string {
 	}
 
 	return stats
+}
+
+func (s *service) InsertNewUser(user User) string {
+	fmt.Println("Inserting user:", user)
+
+
+	query, err := s.db.Prepare("INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id")
+	if err != nil { log.Fatal(err) }
+
+	err = query.QueryRow(user.Username, user.Email).Scan(&user.ID)
+	if err != nil { log.Fatal(err) }
+
+	fmt.Printf("Inserted new user with ID %d\n", user.ID)
+
+	return ""
 }
 
 // Close closes the database connection.
