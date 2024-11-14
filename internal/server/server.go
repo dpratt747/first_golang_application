@@ -14,9 +14,8 @@ import (
 )
 
 type Server struct {
-	port int
-
-	db database.Service
+	Port int
+	Db database.DatabaseService
 }
 
 func NewServer() *http.Server {
@@ -28,14 +27,12 @@ func NewServer() *http.Server {
 	}(string(enums.Username), string(enums.Password), string(enums.Database), string(enums.Port), string(enums.Host))
 
 	NewServer := &Server{
-		port: port,
-
-		db: database.New(dataSourceName),
+		Port: port,
+		Db: database.New(dataSourceName),
 	}
 
-	// Declare Server config
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", NewServer.port),
+		Addr:         fmt.Sprintf(":%d", NewServer.Port),
 		Handler:      NewServer.RegisterRoutes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,

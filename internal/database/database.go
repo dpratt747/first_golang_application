@@ -8,30 +8,18 @@ import (
 	"strconv"
 	"time"
 
+	"db_access/internal/domain"
 	"db_access/internal/enums"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/joho/godotenv/autoload"
 )
 
-type User struct {
-	ID int
-	Username string
-	Email string
-}
+type DatabaseService interface {
 
-// Service represents a service that interacts with a database.
-type Service interface {
-	// Health returns a map of health status information.
-	// The keys and values in the map are service-specific.
 	Health() map[string]string
 
-	// Close terminates the database connection.
-	// It returns an error if the connection cannot be closed.
-	Close() error
-
-	// Inserts a new user into the database
-	InsertNewUser(user User) int
+	InsertNewUser(user domain.User) int
 }
 
 type service struct {
@@ -43,7 +31,7 @@ var (
 	dbInstance *service
 )
 
-func New(connectionString string) Service {
+func New(connectionString string) DatabaseService {
 	// Reuse Connection
 	if dbInstance != nil {
 		return dbInstance
@@ -110,27 +98,33 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) InsertNewUser(user User) int {
+func (s *service) InsertNewUser(user domain.User) int {
+
+	tx, err := s.db.Begin()
+	if err != nil { log.Fatal(err) }
 
 	statement := "INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id"
 
-	query, err := s.db.Prepare(statement)
-	if err != nil { log.Fatal(err) }
+	query, err := tx.Prepare(statement)
+	if err != nil { 
+		tx.Rollback()
+		log.Fatal(err) 
+	}
+	defer query.Close()
 
 	err = query.QueryRow(user.Username, user.Email).Scan(&user.ID)
-	if err != nil { log.Fatal(err) }
+	if err != nil { 
+		tx.Rollback()
+		log.Fatal(err)
+	}
 
+	err = tx.Commit()
+	if err != nil { 
+		tx.Rollback()
+		log.Fatal(err) 
+	}
 
 	log.Println("SQL query:", statement)
 
 	return user.ID
-}
-
-// Close closes the database connection.
-// It logs a message indicating the disconnection from the specific database.
-// If the connection is successfully closed, it returns nil.
-// If an error occurs while closing the connection, it returns the error.
-func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", database)
-	return s.db.Close()
 }

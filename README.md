@@ -3,7 +3,7 @@
 ### Db migration tool
 
 -   [Goose](https://github.com/pressly/goose)
-Going to use Goose for this project:
+    Going to use Goose for this project:
 
 ```bash
 go install github.com/pressly/goose/v3/cmd/goose@latest
@@ -26,14 +26,15 @@ goose -s create new_user_table.sql
 ```
 
 ---
+
 ## Migrations:
 
 ```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
+goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
 ```
 
 ```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 ```
 
 ---
@@ -45,13 +46,14 @@ goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host
 [godev](https://github.com/zephinzer/godev)
 
 Installation:
+
 ```bash
 git clone https://github.com/zephinzer/godev.git
 cd godev
 ```
 
-* godev init <project_name>
-* godev run
+-   godev init <project_name>
+-   godev run
 
 ---
 
@@ -119,6 +121,18 @@ make clean
 
 ## Running Individual Tests:
 
+Unit tests:
+
+```bash
+go test -v -run TestHelloWorldHandler ./... -v
+```
+
+All unit tests:
+
+```bash
+make test
+```
+
 All integration tests:
 
 ```bash
@@ -126,7 +140,7 @@ make itest
 ```
 
 ```bash
-go test -v -run TestInsertNewUser ./integration_tests/database_test.go
+go test -v -run TestInsertNewUser ./integration_tests/...
 ```
 
 Add postgres driver:

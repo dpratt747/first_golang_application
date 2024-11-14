@@ -7,7 +7,7 @@ services:
             - POSTGRES_PASSWORD=postgres
             - POSTGRES_DB=golang_db
         ports:
-            - "5432:5432"
+            - "6432:5432"
 ## Building
 # docker-compose build --no-cache
 

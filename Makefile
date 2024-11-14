@@ -33,11 +33,11 @@ docker-down:
 # Test the application
 test:
 	@echo "Testing..."
-	@go test ./... -v
+	@go test ./tests/... -v
 # Integrations Tests for the application
 itest:
 	@echo "Running integration tests..."
-	@go test ./integration_tests/ -v
+	@go test ./integration_tests/... -v
 
 # Clean the binary
 clean:
