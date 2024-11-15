@@ -12,6 +12,7 @@ import (
 	db "db_access/internal/database"
 	"db_access/internal/domain"
 	"db_access/internal/enums"
+	"math/rand"
 
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
 
@@ -120,7 +121,7 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-func TestInsertNewUser(t *testing.T) {
+func TestInsertNewUserSuccess(t *testing.T) {
 	//ID defaults to 0 when not provided
 	userForInsertion := domain.User{
 		Username: "test user",
@@ -143,8 +144,10 @@ func TestInsertNewUser(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	userId := underTest.InsertNewUser(userForInsertion)
-
+	userId, err := underTest.InsertNewUser(userForInsertion)
+	if err != nil {
+		t.Fatal("Some error occured inserting the user")
+	}
 	var count int
 	err = sqlDb.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil { log.Fatal(err) } 
@@ -154,3 +157,57 @@ func TestInsertNewUser(t *testing.T) {
 		t.Fatalf("expected InsertNewUser() to insert a user and the count query to return 1")
 	}
 }
+
+
+func randomString(n int) string {
+    var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    s := make([]rune, n)
+    for i := range s {
+        s[i] = letters[rand.Intn(len(letters))]
+    }
+    return string(s)
+}
+
+
+func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
+
+	email := fmt.Sprintf("%v@email.com", randomString(10))
+
+	//ID defaults to 0 when not provided
+	userForInsertion1 := domain.User{
+		Username: "test user1",
+		Email: email,
+	}
+	userForInsertion2 := domain.User{
+		Username: "test user2",
+		Email: email,
+	}
+
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	underTest := db.New(dataSourceName)
+
+	sqlDb, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		log.Fatal(err) 
+	}
+	defer sqlDb.Close()
+
+	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = underTest.InsertNewUser(userForInsertion1)
+	if err != nil {
+		t.Fatal("Some error occured inserting the user")
+	}
+	_, err = underTest.InsertNewUser(userForInsertion2)
+	_, isUniqueConstraintError := err.(*domain.UniqueConstraintDatabaseError)
+
+	if !isUniqueConstraintError {
+		t.Fatal("Expected an UniqueConstraintDatabaseError when inserting a user with an already existing email address")
+	}
+}
+

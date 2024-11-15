@@ -8,8 +8,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/lib/pq"
+	_ "github.com/lib/pq"
+
 	"db_access/internal/domain"
-	"db_access/internal/enums"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/joho/godotenv/autoload"
@@ -19,7 +21,7 @@ type DatabaseService interface {
 
 	Health() map[string]string
 
-	InsertNewUser(user domain.User) int
+	InsertNewUser(user domain.User) (int, error)
 }
 
 type service struct {
@@ -27,7 +29,6 @@ type service struct {
 }
 
 var (
-	database   = string(enums.Database)
 	dbInstance *service
 )
 
@@ -98,7 +99,7 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) InsertNewUser(user domain.User) int {
+func (s *service) InsertNewUser(user domain.User) (int, error) {
 
 	tx, err := s.db.Begin()
 	if err != nil { log.Fatal(err) }
@@ -108,23 +109,41 @@ func (s *service) InsertNewUser(user domain.User) int {
 	query, err := tx.Prepare(statement)
 	if err != nil { 
 		tx.Rollback()
-		log.Fatal(err) 
+		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+		return 0, err
 	}
 	defer query.Close()
 
 	err = query.QueryRow(user.Username, user.Email).Scan(&user.ID)
 	if err != nil { 
 		tx.Rollback()
-		log.Fatal(err)
+		errorMessage := fmt.Sprintf("Failed to execute the prepared SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code {
+				case "23505":
+					log.Println("Unique constraint violation:", pqErr.Message)
+					return 0, &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
+				default:
+					log.Println("Database error:", pqErr.Code.Name())
+					return 0, &domain.UnmappedDatabaseError{Message: pqErr.Message}
+			}
+		}
+		return 0, err
 	}
+
 
 	err = tx.Commit()
 	if err != nil { 
 		tx.Rollback()
-		log.Fatal(err) 
+		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+		return 0, err
 	}
 
 	log.Println("SQL query:", statement)
 
-	return user.ID
+	return user.ID, nil
 }

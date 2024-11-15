@@ -28,9 +28,13 @@ func (s *Server) InsertNewUserHandler(c *gin.Context) {
 		return
 	}
 
-	userId := s.Db.InsertNewUser(newUser)
-
-	c.JSON(http.StatusOK, userId)
+	userId, err := s.Db.InsertNewUser(newUser)
+	switch err.(type) {
+		case *domain.UniqueConstraintDatabaseError:
+			c.JSON(http.StatusInternalServerError, err)
+		default:
+			c.JSON(http.StatusCreated, userId)
+	}
 }
 
 func (s *Server) HelloWorldHandler(c *gin.Context) {

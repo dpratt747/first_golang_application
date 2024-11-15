@@ -170,11 +170,11 @@ go get github.com/lib/pq
 ## Database migrations
 
 ```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
+goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
 ```
 
 ## Undo migrations
 
 ```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 ```

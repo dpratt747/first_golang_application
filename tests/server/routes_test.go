@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -51,7 +52,7 @@ func TestInsertNewUserHandlerSuccess(t *testing.T) {
 
 	service := new(testMocks.MockDBService)
 
-	service.On("InsertNewUser", user).Return(10)
+	service.On("InsertNewUser", user).Return(10, nil)
 
 	s := &sv.Server{
 		Port: 8080,
@@ -76,11 +77,58 @@ func TestInsertNewUserHandlerSuccess(t *testing.T) {
 	// Serve the HTTP request
 	r.ServeHTTP(rr, req)
 	// Check the status code
-	if status := rr.Code; status != http.StatusOK {
+	if status := rr.Code; status != http.StatusCreated {
 		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 	// Check the response body
 	expected := "10"
+	if rr.Body.String() != expected {
+		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	}
+}
+
+func TestInsertNewUserHandlerDuplicateEmailAddressFailure(t *testing.T) {
+
+	user := domain.User{
+		ID: 0,
+		Username: "New User",
+		Email: "NewEmail@github.com",
+	}
+
+	service := new(testMocks.MockDBService)
+
+	uniqueRequestError := &domain.UniqueConstraintDatabaseError{Message: "This email is not unique"}
+
+	service.On("InsertNewUser", user).Return(0, uniqueRequestError)
+
+	s := &sv.Server{
+		Port: 8080,
+		Db: service,
+	}
+	r := gin.New()
+	r.POST("/user", s.InsertNewUserHandler)
+
+	jsonData, err := json.Marshal(user)
+	if err != nil {
+		log.Fatalf("Error marshalling payload: %v", err)
+	}
+
+	// Create a test HTTP request
+	req, err := http.NewRequest("POST", "/user", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	// Serve the HTTP request
+	r.ServeHTTP(rr, req)
+	// Check the status code
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	// Check the response body
+	expected := `{"Message":"This email is not unique"}`
 	if rr.Body.String() != expected {
 		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
@@ -99,9 +147,9 @@ func TestInsertNewUserHandlerFailureStatusCode422(t *testing.T) {
 	r := gin.New()
 	r.POST("/user", s.InsertNewUserHandler)
 
-	jsonString := `{ "invalid": "unprocessable" }`
+	invalidJsonString := `{ "invalid": "unprocessable" }`
 
-	jsonData, err := json.Marshal(jsonString)
+	jsonData, err := json.Marshal(invalidJsonString)
 	if err != nil {
 		log.Fatalf("Error marshalling payload: %v", err)
 	}

@@ -17,11 +17,7 @@ func (ms *MockDBService) Health() map[string]string {
 	}
 	return response
 }
-func (ms *MockDBService) InsertNewUser(user domain.User) int {
+func (ms *MockDBService) InsertNewUser(user domain.User) (int, error) {
 	args := ms.Called(user)
-	return args.Int(0)
-}
-func (ms *MockDBService) Close() error {
-	args := ms.Called()
-	return args.Error(0)
+	return args.Int(0), args.Error(1)
 }
