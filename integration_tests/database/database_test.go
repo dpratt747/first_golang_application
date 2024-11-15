@@ -120,7 +120,6 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-// go test -v -run TestInsertNewUser ./integration_tests/database_test.go
 func TestInsertNewUser(t *testing.T) {
 	//ID defaults to 0 when not provided
 	userForInsertion := domain.User{

@@ -121,27 +121,45 @@ make clean
 
 ## Running Individual Tests:
 
-Unit tests:
+### Unit tests:
 
 ```bash
-go test -v -run TestHelloWorldHandler ./... -v
+go test -v -run <Test Name> ./tests/...
 ```
 
-All unit tests:
+e.g.
+
+```bash
+go test -v -run TestHelloWorldHandler ./tests/...
+```
+
+### Integration tests:
+
+```bash
+go test -v -run <Test Name> ./integration_tests/...
+```
+
+e.g.
+
+```bash
+go test -v -run TestInsertNewUser ./integration_tests/...
+```
+
+---
+
+## Running all unit tests:
 
 ```bash
 make test
 ```
 
-All integration tests:
+## Running all integration tests:
 
 ```bash
 make itest
 ```
 
-```bash
-go test -v -run TestInsertNewUser ./integration_tests/...
-```
+---
 
 Add postgres driver:
 

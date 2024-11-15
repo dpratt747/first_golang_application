@@ -24,7 +24,7 @@ func (s *Server) InsertNewUserHandler(c *gin.Context) {
 	var newUser domain.User
 
 	if err := c.ShouldBindJSON(&newUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
 	}
 

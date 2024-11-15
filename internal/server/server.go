@@ -18,7 +18,7 @@ type Server struct {
 	Db database.DatabaseService
 }
 
-func NewServer() *http.Server {
+func New() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 
 
