@@ -28,6 +28,15 @@ var (
 	contaierHost string
 )
 
+func randomString(n int) string {
+    var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    s := make([]rune, n)
+    for i := range s {
+        s[i] = letters[rand.Intn(len(letters))]
+    }
+    return string(s)
+}
+
 func mustStartPostgresContainer() (func(context.Context) error, error) {
 	var (
 		dbName = string(enums.Database)
@@ -122,7 +131,6 @@ func TestHealth(t *testing.T) {
 }
 
 func TestInsertNewUserSuccess(t *testing.T) {
-	//ID defaults to 0 when not provided
 	userForInsertion := domain.User{
 		Username: "test user",
 		Email: "test@email.com",
@@ -138,11 +146,20 @@ func TestInsertNewUserSuccess(t *testing.T) {
 	if err != nil {
 		log.Fatal(err) 
 	}
-	defer sqlDb.Close()
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
 		log.Fatal(err)
 	}
+
+	t.Cleanup(func() {
+		t.Log("Cleaning up after test")
+		err := goose.Down(sqlDb, "../../migrations")
+		if err != nil {
+			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
+			t.Log(message)
+		}
+		sqlDb.Close()
+	})
 
 	userId, err := underTest.InsertNewUser(userForInsertion)
 	if err != nil {
@@ -151,29 +168,16 @@ func TestInsertNewUserSuccess(t *testing.T) {
 	var count int
 	err = sqlDb.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil { log.Fatal(err) } 
-	defer sqlDb.Close()
 
 	if count != 1 ||userId != 1 {
 		t.Fatalf("expected InsertNewUser() to insert a user and the count query to return 1")
 	}
 }
 
-
-func randomString(n int) string {
-    var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-    s := make([]rune, n)
-    for i := range s {
-        s[i] = letters[rand.Intn(len(letters))]
-    }
-    return string(s)
-}
-
-
 func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 
 	email := fmt.Sprintf("%v@email.com", randomString(10))
 
-	//ID defaults to 0 when not provided
 	userForInsertion1 := domain.User{
 		Username: "test user1",
 		Email: email,
@@ -193,11 +197,20 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 	if err != nil {
 		log.Fatal(err) 
 	}
-	defer sqlDb.Close()
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
 		log.Fatal(err)
 	}
+
+	t.Cleanup(func() {
+		t.Log("Cleaning up after test")
+		err := goose.Down(sqlDb, "../../migrations")
+		if err != nil {
+			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
+			t.Log(message)
+		}
+		sqlDb.Close()
+	})
 
 	_, err = underTest.InsertNewUser(userForInsertion1)
 	if err != nil {
@@ -211,3 +224,55 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 	}
 }
 
+
+func TestGetAllUsersSuccess(t *testing.T) {
+	userForInsertion1 := domain.User{
+		Username: "test user 1",
+		Email: "email1@email.com",
+	}
+
+	userForInsertion2 := domain.User{
+		Username: "test user 2",
+		Email: "email2@email.com",
+	}
+
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	underTest := db.New(dataSourceName)
+
+	sqlDb, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		log.Fatal(err) 
+	}
+
+	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
+		log.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		t.Log("Cleaning up after test")
+		err := goose.Down(sqlDb, "../../migrations")
+		if err != nil {
+			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
+			t.Log(message)
+		}
+		sqlDb.Close()
+	})
+
+	_, err = underTest.InsertNewUser(userForInsertion1)
+	if err != nil {
+		t.Fatal("Some error occured inserting the user")
+	}
+	_, err = underTest.InsertNewUser(userForInsertion2)
+	if err != nil {
+		t.Fatal("Some error occured inserting the user")
+	}
+
+	getAllUsersResponse, _ := underTest.GetAllUsers()
+	
+	if len(getAllUsersResponse) != 2 {
+		t.Fatalf("expected GetAllUsers() to return a list of length equal to 2")
+	}
+}

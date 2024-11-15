@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 
 	"db_access/internal/domain"
 
@@ -22,6 +21,8 @@ type DatabaseService interface {
 	Health() map[string]string
 
 	InsertNewUser(user domain.User) (int, error)
+
+	GetAllUsers() ([]domain.User, error)
 }
 
 type service struct {
@@ -97,6 +98,48 @@ func (s *service) Health() map[string]string {
 	}
 
 	return stats
+}
+
+func (s *service) GetAllUsers() ([]domain.User, error) {
+	tx, err := s.db.Begin()
+	if err != nil { log.Fatal(err) }
+
+	statement := "SELECT u.id, u.username, u.email FROM users u"
+	query, err := tx.Prepare(statement)
+	if err != nil { 
+		tx.Rollback()
+		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+		return nil, err
+	}
+
+	rows, err := query.Query()
+	if err != nil {
+		return nil, &domain.UnmappedDatabaseError{ Message: err.Error() }
+	}
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next() {
+		var user domain.User
+		err := rows.Scan(&user.ID, &user.Username, &user.Email)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	err = tx.Commit()
+	if err != nil { 
+		tx.Rollback()
+		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+		return nil, err
+	}
+
+	log.Println("SQL query:", statement)
+	return users, nil
 }
 
 func (s *service) InsertNewUser(user domain.User) (int, error) {
