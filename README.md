@@ -1,9 +1,28 @@
 <!-- First steps -->
 
-### Db migration tool
+## <ins>Running locally</ins>
 
--   [Goose](https://github.com/pressly/goose)
-    Going to use Goose for this project:
+```bash
+docker-compose up -d postgres
+```
+
+```bash
+goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
+```
+
+```bash
+make run
+```
+
+### <ins>Undo migrations</ins>
+
+```bash
+goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+```
+
+---
+
+## <ins>Set up</ins>
 
 ```bash
 go install github.com/pressly/goose/v3/cmd/goose@latest
@@ -25,20 +44,6 @@ cd migrations
 goose -s create new_user_table.sql
 ```
 
----
-
-## Migrations:
-
-```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
-```
-
-```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
-```
-
----
-
 `go.sum` Is generated and updated automatically. It records the expected cryptographic checksums of the content of specific module versions, ensuring that future downloads of these modules are consistent and secure
 
 ## Bootstrap tool
@@ -57,11 +62,7 @@ cd godev
 
 ---
 
-## Getting Started
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-## MakeFile
+## <ins>MakeFile</ins>
 
 Run build make command with tests
 
@@ -119,7 +120,7 @@ make clean
 
 ---
 
-## Running Individual Tests:
+## <ins>Running Individual Tests:</ins>
 
 ### Unit tests:
 
@@ -145,36 +146,14 @@ e.g.
 go test -v -run TestInsertNewUser ./integration_tests/...
 ```
 
----
-
-## Running all unit tests:
+### Running all unit tests:
 
 ```bash
 make test
 ```
 
-## Running all integration tests:
+### Running all integration tests:
 
 ```bash
 make itest
-```
-
----
-
-Add postgres driver:
-
-```bash
-go get github.com/lib/pq
-```
-
-## Database migrations
-
-```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
-```
-
-## Undo migrations
-
-```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 ```
