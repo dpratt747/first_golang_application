@@ -1,5 +1,3 @@
-<!-- First steps -->
-
 ## <ins>Running locally</ins>
 
 ```bash

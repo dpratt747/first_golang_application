@@ -34,7 +34,6 @@ var (
 )
 
 func New(connectionString string) DatabaseService {
-	// Reuse Connection
 	if dbInstance != nil {
 		return dbInstance
 	}
@@ -49,8 +48,6 @@ func New(connectionString string) DatabaseService {
 	return dbInstance
 }
 
-// Health checks the health of the database connection by pinging the database.
-// It returns a map with keys indicating various health statistics.
 func (s *service) Health() map[string]string {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()

@@ -15,6 +15,7 @@ import (
 	"math/rand"
 
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
+	"github.com/stretchr/testify/assert"
 
 	"github.com/pressly/goose/v3"
 
@@ -73,12 +74,6 @@ func mustStartPostgresContainer() (func(context.Context) error, error) {
 	containerPort = strings.ReplaceAll(string(dbPort), "tcp", "")
 	containerPort = strings.ReplaceAll(containerPort, "/", "")
 
-	connectionString := func(host, port string) string {
-		return fmt.Sprintf("Connected to %s, on port: %s", host, port)
-	}(contaierHost, containerPort)
-
-	fmt.Println(connectionString)
-
 	return dbContainer.Terminate, err
 }
 
@@ -96,19 +91,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
-
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
 	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
 
 	srv := db.New(dataSourceName)
-	if srv == nil {
-		t.Fatal("New() returned nil")
-	}
+	assert.NotEqual(t, nil, srv, "New() returned nil")
 }
 
 func TestHealth(t *testing.T) {
-
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
 	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
@@ -117,17 +108,11 @@ func TestHealth(t *testing.T) {
 
 	stats := underTest.Health()
 
-	if stats["status"] != "up" {
-		t.Fatalf("expected status to be up, got %s", stats["status"])
-	}
 
-	if _, ok := stats["error"]; ok {
-		t.Fatalf("expected error not to be present")
-	}
-
-	if stats["message"] != "It's healthy" {
-		t.Fatalf("expected message to be 'It's healthy', got %s", stats["message"])
-	}
+	assert.Equal(t, "up", stats["status"], fmt.Sprintf("expected status to be up, got %s", stats["status"]))
+	_, ok := stats["error"]
+	assert.True(t, !ok, "expected error not to be present")
+	assert.Equal(t,   "It's healthy", stats["message"], fmt.Sprintf("expected message to be 'It's healthy', got %s", stats["message"]))
 }
 
 func TestInsertNewUserSuccess(t *testing.T) {
@@ -153,7 +138,7 @@ func TestInsertNewUserSuccess(t *testing.T) {
 
 	t.Cleanup(func() {
 		t.Log("Cleaning up after test")
-		err := goose.Down(sqlDb, "../../migrations")
+		err := goose.DownTo(sqlDb, "../../migrations", 0)
 		if err != nil {
 			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
 			t.Log(message)
@@ -162,20 +147,17 @@ func TestInsertNewUserSuccess(t *testing.T) {
 	})
 
 	userId, err := underTest.InsertNewUser(userForInsertion)
-	if err != nil {
-		t.Fatal("Some error occured inserting the user")
-	}
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+
 	var count int
 	err = sqlDb.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil { log.Fatal(err) } 
 
-	if count != 1 ||userId != 1 {
-		t.Fatalf("expected InsertNewUser() to insert a user and the count query to return 1")
-	}
+	assert.Equal(t, 1, userId, fmt.Sprintf("Expected userId to equal to 1 got %v", userId))
+	assert.Equal(t, 1, count, fmt.Sprintf("Expected count to equal to 1 got %v", count))
 }
 
 func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
-
 	email := fmt.Sprintf("%v@email.com", randomString(10))
 
 	userForInsertion1 := domain.User{
@@ -204,7 +186,7 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 
 	t.Cleanup(func() {
 		t.Log("Cleaning up after test")
-		err := goose.Down(sqlDb, "../../migrations")
+		err := goose.DownTo(sqlDb, "../../migrations", 0)
 		if err != nil {
 			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
 			t.Log(message)
@@ -213,17 +195,11 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 	})
 
 	_, err = underTest.InsertNewUser(userForInsertion1)
-	if err != nil {
-		t.Fatal("Some error occured inserting the user")
-	}
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
 	_, err = underTest.InsertNewUser(userForInsertion2)
 	_, isUniqueConstraintError := err.(*domain.UniqueConstraintDatabaseError)
-
-	if !isUniqueConstraintError {
-		t.Fatal("Expected an UniqueConstraintDatabaseError when inserting a user with an already existing email address")
-	}
+	assert.True(t, isUniqueConstraintError, "Expected an UniqueConstraintDatabaseError when inserting a user with an already existing email address")
 }
-
 
 func TestGetAllUsersSuccess(t *testing.T) {
 	userForInsertion1 := domain.User{
@@ -253,7 +229,7 @@ func TestGetAllUsersSuccess(t *testing.T) {
 
 	t.Cleanup(func() {
 		t.Log("Cleaning up after test")
-		err := goose.Down(sqlDb, "../../migrations")
+		err := goose.DownTo(sqlDb, "../../migrations", 0)
 		if err != nil {
 			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
 			t.Log(message)
@@ -262,17 +238,11 @@ func TestGetAllUsersSuccess(t *testing.T) {
 	})
 
 	_, err = underTest.InsertNewUser(userForInsertion1)
-	if err != nil {
-		t.Fatal("Some error occured inserting the user")
-	}
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
 	_, err = underTest.InsertNewUser(userForInsertion2)
-	if err != nil {
-		t.Fatal("Some error occured inserting the user")
-	}
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
 
 	getAllUsersResponse, _ := underTest.GetAllUsers()
 	
-	if len(getAllUsersResponse) != 2 {
-		t.Fatalf("expected GetAllUsers() to return a list of length equal to 2")
-	}
+	assert.Equal(t, 2, len(getAllUsersResponse), "expected GetAllUsers() to return a list of length equal to 2")
 }

@@ -16,7 +16,19 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.POST("/user", s.InsertNewUserHandler)
 
+	r.GET("/users", s.GetAllUsersHandler)
+
 	return r
+}
+
+func (s *Server) GetAllUsersHandler(c *gin.Context) {
+	users, err :=s.Db.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
+	
+	c.JSON(http.StatusOK, users)
 }
 
 func (s *Server) InsertNewUserHandler(c *gin.Context) {
@@ -32,8 +44,10 @@ func (s *Server) InsertNewUserHandler(c *gin.Context) {
 	switch err.(type) {
 		case *domain.UniqueConstraintDatabaseError:
 			c.JSON(http.StatusInternalServerError, err)
+			return
 		default:
 			c.JSON(http.StatusCreated, userId)
+			return
 	}
 }
 
