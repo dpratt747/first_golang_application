@@ -155,3 +155,6 @@ make test
 ```bash
 make itest
 ```
+---
+## TODOs:
+* implement tombstone for user deletion [here](https://www.jamestharpe.com/tombstone-pattern/)
