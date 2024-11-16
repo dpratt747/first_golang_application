@@ -73,7 +73,7 @@ func TestGetAllUsersSuccess(t *testing.T) {
 
 	expectedStatusCode := http.StatusOK
 	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
-	expected := `[{"ID":0,"Username":"New User","Email":"NewEmail@github.com"}]`
+	expected := `[{"id":0,"username":"New User","email":"NewEmail@github.com"}]`
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 
