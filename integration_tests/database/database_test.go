@@ -99,21 +99,6 @@ func TestNew(t *testing.T) {
 	assert.NotEqual(t, nil, srv, "New() returned nil")
 }
 
-func TestHealth(t *testing.T) {
-	dataSourceName := func(user, password, dbName, port, host string) string {
-		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
-
-	underTest := db.New(dataSourceName)
-
-	stats := underTest.Health()
-
-	assert.Equal(t, "up", stats["status"], fmt.Sprintf("expected status to be up, got %s", stats["status"]))
-	_, ok := stats["error"]
-	assert.True(t, !ok, "expected error not to be present")
-	assert.Equal(t, "It's healthy", stats["message"], fmt.Sprintf("expected message to be 'It's healthy', got %s", stats["message"]))
-}
-
 func TestInsertNewUserSuccess(t *testing.T) {
 	userForInsertion := domain.User{
 		Username: "test user",

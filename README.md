@@ -12,6 +12,44 @@ goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host
 make run
 ```
 
+---
+
+## Request Examples:
+
+### Insert User:
+
+```bash
+curl --request POST \
+  --url http://127.0.0.1:8080/user \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"username": "1",
+	"email": "11211@email.com"
+}'
+```
+
+### Get All Users:
+
+```bash
+curl --request GET \
+  --url http://127.0.0.1:8080/users \
+  --header 'Content-Type: application/json'
+```
+
+### Delete User:
+
+```bash
+curl --request DELETE \
+  --url http://127.0.0.1:8080/user \
+  --header 'Content-Type: application/json' \
+  --header 'User-Agent: insomnia/10.1.1' \
+  --data '{
+	"userid": 3
+}'
+```
+
+---
+
 ### <ins>Undo migrations</ins>
 
 ```bash

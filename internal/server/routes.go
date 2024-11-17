@@ -10,10 +10,6 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 
-	r.GET("/", s.HelloWorldHandler)
-
-	r.GET("/health", s.healthHandler)
-
 	r.POST("/user", s.InsertNewUserHandler)
 
 	r.GET("/users", s.GetAllUsersHandler)
@@ -73,15 +69,4 @@ func (s *Server) InsertNewUserHandler(c *gin.Context) {
 		c.JSON(http.StatusCreated, gin.H{"userId": userId})
 		return
 	}
-}
-
-func (s *Server) HelloWorldHandler(c *gin.Context) {
-	resp := make(map[string]string)
-	resp["message"] = "Hello World"
-
-	c.JSON(http.StatusOK, resp)
-}
-
-func (s *Server) healthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, s.Db.Health())
 }

@@ -20,26 +20,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestHelloWorldHandler(t *testing.T) {
-	s := &sv.Server{}
-	r := gin.New()
-	r.GET("/", s.HelloWorldHandler)
-	// Create a test HTTP request
-	req, err := http.NewRequest("GET", "/", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Create a ResponseRecorder to record the response
-	rr := httptest.NewRecorder()
-	// Serve the HTTP request
-	r.ServeHTTP(rr, req)
-
-	expectedStatusCode := http.StatusOK
-	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
-	expected := "{\"message\":\"Hello World\"}"
-	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
-}
-
 func TestGetAllUsersSuccess(t *testing.T) {
 	user := domain.User{
 		ID:       0,
