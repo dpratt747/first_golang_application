@@ -14,7 +14,6 @@ import (
 )
 
 type DatabaseService interface {
-
 	InsertNewUser(user domain.User) (int, error)
 
 	GetAllUsers() ([]domain.User, error)
