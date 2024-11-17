@@ -17,7 +17,7 @@ import (
 
 type Server struct {
 	Port int
-	Db database.DatabaseService
+	Db   database.DatabaseService
 }
 
 func New() *http.Server {
@@ -33,7 +33,7 @@ func New() *http.Server {
 
 	NewServer := &Server{
 		Port: port,
-		Db: db,
+		Db:   db,
 	}
 
 	address := fmt.Sprintf("%v:%d", host, NewServer.Port)

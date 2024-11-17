@@ -12,7 +12,7 @@ type MockDBService struct {
 
 func (ms *MockDBService) Health() map[string]string {
 	args := ms.Called()
-	response := map[string]string {
+	response := map[string]string{
 		"key1": args.String(0),
 	}
 	return response

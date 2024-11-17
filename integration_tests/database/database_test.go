@@ -26,16 +26,16 @@ import (
 
 var (
 	containerPort string
-	contaierHost string
+	contaierHost  string
 )
 
 func randomString(n int) string {
-    var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-    s := make([]rune, n)
-    for i := range s {
-        s[i] = letters[rand.Intn(len(letters))]
-    }
-    return string(s)
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
 }
 
 func mustStartPostgresContainer() (func(context.Context) error, error) {
@@ -108,17 +108,16 @@ func TestHealth(t *testing.T) {
 
 	stats := underTest.Health()
 
-
 	assert.Equal(t, "up", stats["status"], fmt.Sprintf("expected status to be up, got %s", stats["status"]))
 	_, ok := stats["error"]
 	assert.True(t, !ok, "expected error not to be present")
-	assert.Equal(t,   "It's healthy", stats["message"], fmt.Sprintf("expected message to be 'It's healthy', got %s", stats["message"]))
+	assert.Equal(t, "It's healthy", stats["message"], fmt.Sprintf("expected message to be 'It's healthy', got %s", stats["message"]))
 }
 
 func TestInsertNewUserSuccess(t *testing.T) {
 	userForInsertion := domain.User{
 		Username: "test user",
-		Email: "test@email.com",
+		Email:    "test@email.com",
 	}
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
@@ -129,7 +128,7 @@ func TestInsertNewUserSuccess(t *testing.T) {
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err) 
+		log.Fatal(err)
 	}
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
@@ -151,7 +150,9 @@ func TestInsertNewUserSuccess(t *testing.T) {
 
 	var count int
 	err = sqlDb.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-	if err != nil { log.Fatal(err) } 
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	assert.Equal(t, 1, userId, fmt.Sprintf("Expected userId to equal to 1 got %v", userId))
 	assert.Equal(t, 1, count, fmt.Sprintf("Expected count to equal to 1 got %v", count))
@@ -162,11 +163,11 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 
 	userForInsertion1 := domain.User{
 		Username: "test user1",
-		Email: email,
+		Email:    email,
 	}
 	userForInsertion2 := domain.User{
 		Username: "test user2",
-		Email: email,
+		Email:    email,
 	}
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
@@ -177,7 +178,7 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err) 
+		log.Fatal(err)
 	}
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
@@ -204,12 +205,12 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 func TestGetAllUsersSuccess(t *testing.T) {
 	userForInsertion1 := domain.User{
 		Username: "test user 1",
-		Email: "email1@email.com",
+		Email:    "email1@email.com",
 	}
 
 	userForInsertion2 := domain.User{
 		Username: "test user 2",
-		Email: "email2@email.com",
+		Email:    "email2@email.com",
 	}
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
@@ -220,7 +221,7 @@ func TestGetAllUsersSuccess(t *testing.T) {
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err) 
+		log.Fatal(err)
 	}
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
@@ -243,19 +244,19 @@ func TestGetAllUsersSuccess(t *testing.T) {
 	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
 
 	getAllUsersResponse, _ := underTest.GetAllUsers()
-	
+
 	assert.Equal(t, 2, len(getAllUsersResponse), "expected GetAllUsers() to return a list of length equal to 2")
 }
 
 func TestGetAllUsersTombstoneSuccess(t *testing.T) {
 	userForInsertion1 := domain.User{
 		Username: "test user 1",
-		Email: "email1@email.com",
+		Email:    "email1@email.com",
 	}
 
 	userForInsertion2 := domain.User{
 		Username: "test user 2",
-		Email: "email2@email.com",
+		Email:    "email2@email.com",
 	}
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
@@ -266,7 +267,7 @@ func TestGetAllUsersTombstoneSuccess(t *testing.T) {
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err) 
+		log.Fatal(err)
 	}
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
@@ -291,16 +292,18 @@ func TestGetAllUsersTombstoneSuccess(t *testing.T) {
 	// insert into tombstone with the userId above
 	stmt := "INSERT INTO user_deletes(user_id) VALUES($1)"
 	_, err = sqlDb.Exec(stmt, userId)
-	if err != nil { log.Fatal(err) } 
+	if err != nil {
+		log.Fatal(err)
+	}
 	getAllUsersResponse, _ := underTest.GetAllUsers()
-	
+
 	assert.Equal(t, 1, len(getAllUsersResponse), "expected GetAllUsers() to return a list of length equal to 1")
 }
 
 func TestSoftDeleteUserSuccess(t *testing.T) {
 	userForInsertion := domain.User{
 		Username: "test user 1",
-		Email: "email1@email.com",
+		Email:    "email1@email.com",
 	}
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
@@ -311,7 +314,7 @@ func TestSoftDeleteUserSuccess(t *testing.T) {
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err) 
+		log.Fatal(err)
 	}
 
 	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
@@ -328,18 +331,17 @@ func TestSoftDeleteUserSuccess(t *testing.T) {
 		sqlDb.Close()
 	})
 
-	userId, err:= underTest.InsertNewUser(userForInsertion)
+	userId, err := underTest.InsertNewUser(userForInsertion)
 	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
 	err = underTest.SoftDeleteUser(userId)
 	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
 
-	
 	query := "SELECT COUNT(*) FROM user_deletes ud WHERE ud.user_id = $1"
 	var count int
 	err = sqlDb.QueryRow(query, userId).Scan(&count)
-	if err != nil { log.Fatal(err) }
-	
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	assert.Equal(t, 1, count, "expected SoftDeleteUser() to persist 1 row to the user_deletes table")
 }
-
-

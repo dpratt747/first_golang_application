@@ -42,20 +42,20 @@ func TestHelloWorldHandler(t *testing.T) {
 
 func TestGetAllUsersSuccess(t *testing.T) {
 	user := domain.User{
-		ID: 0,
+		ID:       0,
 		Username: "New User",
-		Email: "NewEmail@github.com",
+		Email:    "NewEmail@github.com",
 	}
 
 	service := new(testMocks.MockDBService)
 
-	userList := []domain.User {user}
+	userList := []domain.User{user}
 
 	service.On("GetAllUsers").Return(userList, nil)
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.GET("/users", s.GetAllUsersHandler)
@@ -84,7 +84,7 @@ func TestGetAllUsersFailure(t *testing.T) {
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.GET("/users", s.GetAllUsersHandler)
@@ -116,7 +116,7 @@ func TestDeleteUserHandlerSuccess(t *testing.T) {
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.DELETE("/user", s.DeleteUserHandler)
@@ -152,7 +152,7 @@ func TestDeleteUserHandlerUniqueConstraintFailure(t *testing.T) {
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.DELETE("/user", s.DeleteUserHandler)
@@ -189,7 +189,7 @@ func TestDeleteUserHandlerUserNotFoundFailure(t *testing.T) {
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.DELETE("/user", s.DeleteUserHandler)
@@ -218,9 +218,9 @@ func TestDeleteUserHandlerUserNotFoundFailure(t *testing.T) {
 
 func TestInsertNewUserHandlerSuccess(t *testing.T) {
 	user := domain.User{
-		ID: 0,
+		ID:       0,
 		Username: "New User",
-		Email: "NewEmail@github.com",
+		Email:    "NewEmail@github.com",
 	}
 
 	service := new(testMocks.MockDBService)
@@ -229,7 +229,7 @@ func TestInsertNewUserHandlerSuccess(t *testing.T) {
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.POST("/user", s.InsertNewUserHandler)
@@ -258,9 +258,9 @@ func TestInsertNewUserHandlerSuccess(t *testing.T) {
 
 func TestInsertNewUserHandlerDuplicateEmailAddressFailure(t *testing.T) {
 	user := domain.User{
-		ID: 0,
+		ID:       0,
 		Username: "New User",
-		Email: "NewEmail@github.com",
+		Email:    "NewEmail@github.com",
 	}
 
 	service := new(testMocks.MockDBService)
@@ -271,7 +271,7 @@ func TestInsertNewUserHandlerDuplicateEmailAddressFailure(t *testing.T) {
 
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.POST("/user", s.InsertNewUserHandler)
@@ -302,10 +302,10 @@ func TestInsertNewUserHandlerFailureStatusCode422(t *testing.T) {
 	service := new(testMocks.MockDBService)
 
 	service.AssertNotCalled(t, "InsertNewUser", mock.Anything)
-	
+
 	s := &sv.Server{
 		Port: 8080,
-		Db: service,
+		Db:   service,
 	}
 	r := gin.New()
 	r.POST("/user", s.InsertNewUserHandler)

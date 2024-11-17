@@ -17,13 +17,12 @@ import (
 )
 
 type DatabaseService interface {
-
 	Health() map[string]string
 
 	InsertNewUser(user domain.User) (int, error)
 
 	GetAllUsers() ([]domain.User, error)
-	
+
 	SoftDeleteUser(userId int) error
 }
 
@@ -44,7 +43,7 @@ func New(connectionString string) DatabaseService {
 	if err != nil {
 		log.Println(err)
 	}
-	dbInstance = &service {
+	dbInstance = &service{
 		db: db,
 	}
 	return dbInstance
@@ -100,13 +99,15 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func(s *service) SoftDeleteUser(userId int) error {
+func (s *service) SoftDeleteUser(userId int) error {
 	tx, err := s.db.Begin()
-	if err != nil { return &domain.DatabaseTransactionError{Message: err.Error()} }
+	if err != nil {
+		return &domain.DatabaseTransactionError{Message: err.Error()}
+	}
 	statement := "INSERT INTO user_deletes(user_id) VALUES($1)"
 
 	query, err := tx.Prepare(statement)
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
@@ -118,24 +119,24 @@ func(s *service) SoftDeleteUser(userId int) error {
 
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
-				case "23505":
-					log.Println("Unique constraint violation:", pqErr.Message)
-					return &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
-				case "23503":
-					log.Println("User does not exist cannot delete", pqErr.Message)
-					return &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
-				default:
-					log.Println("Database error:", pqErr.Code.Name())
-					return &domain.UnmappedDatabaseError{Message: pqErr.Message}
+			case "23505":
+				log.Println("Unique constraint violation:", pqErr.Message)
+				return &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
+			case "23503":
+				log.Println("User does not exist cannot delete", pqErr.Message)
+				return &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
+			default:
+				log.Println("Database error:", pqErr.Code.Name())
+				return &domain.UnmappedDatabaseError{Message: pqErr.Message}
 			}
 		}
-		return &domain.UnmappedDatabaseError{ Message: err.Error() }
+		return &domain.UnmappedDatabaseError{Message: err.Error()}
 
 	}
 	defer query.Close()
 
 	err = tx.Commit()
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
@@ -149,10 +150,12 @@ func(s *service) SoftDeleteUser(userId int) error {
 
 func (s *service) GetAllUsers() ([]domain.User, error) {
 	tx, err := s.db.Begin()
-	if err != nil { return nil, &domain.DatabaseTransactionError{Message: err.Error()} }
+	if err != nil {
+		return nil, &domain.DatabaseTransactionError{Message: err.Error()}
+	}
 
-	statement := 
-	`
+	statement :=
+		`
 	SELECT u.id, u.username, u.email
 	FROM users u 
 	LEFT JOIN user_deletes ud on u.id = ud.user_id
@@ -160,7 +163,7 @@ func (s *service) GetAllUsers() ([]domain.User, error) {
 	`
 
 	query, err := tx.Prepare(statement)
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
@@ -169,7 +172,7 @@ func (s *service) GetAllUsers() ([]domain.User, error) {
 
 	rows, err := query.Query()
 	if err != nil {
-		return nil, &domain.UnmappedDatabaseError{ Message: err.Error() }
+		return nil, &domain.UnmappedDatabaseError{Message: err.Error()}
 	}
 	defer rows.Close()
 
@@ -185,7 +188,7 @@ func (s *service) GetAllUsers() ([]domain.User, error) {
 	}
 
 	err = tx.Commit()
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
@@ -198,12 +201,14 @@ func (s *service) GetAllUsers() ([]domain.User, error) {
 
 func (s *service) InsertNewUser(user domain.User) (int, error) {
 	tx, err := s.db.Begin()
-	if err != nil { return 0, &domain.DatabaseTransactionError{Message: err.Error()} }
+	if err != nil {
+		return 0, &domain.DatabaseTransactionError{Message: err.Error()}
+	}
 
 	statement := "INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id"
 
 	query, err := tx.Prepare(statement)
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
@@ -212,27 +217,26 @@ func (s *service) InsertNewUser(user domain.User) (int, error) {
 	defer query.Close()
 
 	err = query.QueryRow(user.Username, user.Email).Scan(&user.ID)
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to execute the prepared SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
 
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
-				case "23505":
-					log.Println("Unique constraint violation:", pqErr.Message)
-					return 0, &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
-				default:
-					log.Println("Database error:", pqErr.Code.Name())
-					return 0, &domain.UnmappedDatabaseError{Message: pqErr.Message}
+			case "23505":
+				log.Println("Unique constraint violation:", pqErr.Message)
+				return 0, &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
+			default:
+				log.Println("Database error:", pqErr.Code.Name())
+				return 0, &domain.UnmappedDatabaseError{Message: pqErr.Message}
 			}
 		}
 		return 0, err
 	}
 
-
 	err = tx.Commit()
-	if err != nil { 
+	if err != nil {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
