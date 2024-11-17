@@ -3,6 +3,12 @@
 # Build the application
 all: build test
 
+migrate-up:
+	@goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
+
+migrate-down:
+	@goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+
 build:
 	@echo "Building..."
 	
@@ -12,7 +18,7 @@ build:
 # Run the application
 run:
 	@go run cmd/api/main.go
-	
+
 # Start DB container in detached mode
 docker-run:
 	@if docker compose up --build -d 2>/dev/null; then \
