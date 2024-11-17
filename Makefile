@@ -12,13 +12,14 @@ build:
 # Run the application
 run:
 	@go run cmd/api/main.go
-# Create DB container
+	
+# Start DB container in detached mode
 docker-run:
-	@if docker compose up --build 2>/dev/null; then \
+	@if docker compose up --build -d 2>/dev/null; then \
 		: ; \
 	else \
 		echo "Falling back to Docker Compose V1"; \
-		docker-compose up --build; \
+		docker-compose up --build -d; \
 	fi
 
 # Shutdown DB container
