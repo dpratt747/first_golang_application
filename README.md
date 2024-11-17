@@ -12,8 +12,10 @@ goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host
 make run
 ```
 
+---
+
 ```bash
-make docker-run
+make docker-up
 make migrate-up
 ```
 

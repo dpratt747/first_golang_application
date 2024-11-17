@@ -1,13 +1,17 @@
-# Simple Makefile for a Go project
+# Load environment variables from .env file 
+include .env
+export $(shell sed 's/=.*//' .env)
 
 # Build the application
 all: build test
 
 migrate-up:
-	@goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
+	@echo "Migration up with DB_HOST=$(DB_HOST) and DB_PORT=$(EXTERNAL_DB_PORT)"
+	@goose -dir ./migrations postgres "user=postgres password=postgres port=$(EXTERNAL_DB_PORT) host=localhost dbname=golang_db sslmode=disable" up
 
 migrate-down:
-	@goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+	@echo "Migration down with DB_HOST=$(DB_HOST) and DB_PORT=$(EXTERNAL_DB_PORT)"
+	@goose -dir ./migrations postgres "user=postgres password=postgres port=$(EXTERNAL_DB_PORT) host=localhost dbname=golang_db sslmode=disable" down-to 0
 
 build:
 	@echo "Building..."
@@ -20,7 +24,7 @@ run:
 	@go run main.go
 
 # Start DB container in detached mode
-docker-run:
+docker-up:
 	@if docker compose up --build -d 2>/dev/null; then \
 		: ; \
 	else \

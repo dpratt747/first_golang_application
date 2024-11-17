@@ -1,10 +1,12 @@
 package environment
 
 import (
-	"github.com/joho/godotenv"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -15,9 +17,13 @@ func getEnvOrDefault(key, defaultValue string) string {
 }
 
 func GetEnvVar(path string) (int, string, string, string, string, string) {
-	err := godotenv.Load(path)
-	if err != nil {
-		log.Println("Error loading .env file")
+
+	if os.Getenv("ENV") != "production" {
+		err := godotenv.Load(path)
+		if err != nil {
+			message := fmt.Sprintf("Error loading .env file from path %v", path)
+			log.Println(message)
+		}
 	}
 
 	applicationPortString := getEnvOrDefault("APP_PORT", "8080")
@@ -28,7 +34,14 @@ func GetEnvVar(path string) (int, string, string, string, string, string) {
 
 	dbHost := getEnvOrDefault("DB_HOST", "localhost")
 
-	dbPort := getEnvOrDefault("DB_PORT", "5432")
+	runningMode := getEnvOrDefault("RUNNING_MODE", "locally")
+
+	var dbPort string
+	if runningMode == "docker" {
+		dbPort = getEnvOrDefault("INTERNAL_DB_PORT", "5432")
+	} else {
+		dbPort = getEnvOrDefault("EXTERNAL_DB_PORT", "5432")
+	}
 
 	postgresUser := getEnvOrDefault("POSTGRES_USER", "postgres")
 

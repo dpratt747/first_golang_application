@@ -9,18 +9,20 @@ COPY . .
 
 RUN go build -o main ./main.go
 
-RUN ls -la .
+# RUN ls -la .
 
 # ----
 FROM alpine:latest 
 
 WORKDIR /root/
 
-# may remove
 RUN apk add --no-cache libc6-compat  
+
+# RUN ls -la .
 
 COPY --from=build /app/main .
 COPY --from=build /app/README.md .
+COPY --from=build /app/.env .
 
 RUN chmod +x /root/main
 

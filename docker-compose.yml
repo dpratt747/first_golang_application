@@ -9,6 +9,8 @@ services:
             - DB_PORT=${DB_PORT:-6432}
             - DB_HOST=db
             - APP_PORT=${APP_PORT:-9090}
+            - RUNNING_MODE=docker
+            - ENV=${ENV:-local}
             # - GIN_MODE=release
             - POSTGRES_USER=${POSTGRES_USER:-postgres}
             - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
@@ -25,7 +27,7 @@ services:
             - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
             - POSTGRES_DB=${POSTGRES_DB:-golang_db}
         ports:
-            - "${DB_PORT:-5432}:${DB_PORT:-5432}"
+            - "${EXTERNAL_DB_PORT:-5432}:${INTERNAL_DB_PORT:-5432}"
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 5s
