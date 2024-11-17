@@ -26,3 +26,8 @@ func (ms *MockDBService) GetAllUsers() ([]domain.User, error) {
 	args := ms.Called()
 	return args.Get(0).([]domain.User), args.Error(1)
 }
+
+func (ms *MockDBService) SoftDeleteUser(userId int) error {
+	args := ms.Called()
+	return args.Error(0)
+}

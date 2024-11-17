@@ -23,6 +23,8 @@ type DatabaseService interface {
 	InsertNewUser(user domain.User) (int, error)
 
 	GetAllUsers() ([]domain.User, error)
+	
+	SoftDeleteUser(userId int) error
 }
 
 type service struct {
@@ -40,7 +42,7 @@ func New(connectionString string) DatabaseService {
 
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	dbInstance = &service {
 		db: db,
@@ -59,7 +61,8 @@ func (s *service) Health() map[string]string {
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		message := fmt.Sprintf("db down: %v", err)
+		log.Printf(message) // Log the error
 		return stats
 	}
 
@@ -97,17 +100,71 @@ func (s *service) Health() map[string]string {
 	return stats
 }
 
-func (s *service) GetAllUsers() ([]domain.User, error) {
+func(s *service) SoftDeleteUser(userId int) error {
 	tx, err := s.db.Begin()
-	if err != nil { log.Fatal(err) }
+	if err != nil { return &domain.DatabaseTransactionError{Message: err.Error()} }
+	statement := "INSERT INTO user_deletes(user_id) VALUES($1)"
 
-	statement := "SELECT u.id, u.username, u.email FROM users u"
 	query, err := tx.Prepare(statement)
 	if err != nil { 
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
-		return nil, err
+		return err
+	}
+
+	_, err = query.Exec(userId)
+	if err != nil {
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code {
+				case "23505":
+					log.Println("Unique constraint violation:", pqErr.Message)
+					return &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
+				case "23503":
+					log.Println("User does not exist cannot delete", pqErr.Message)
+					return &domain.UniqueConstraintDatabaseError{Message: pqErr.Message}
+				default:
+					log.Println("Database error:", pqErr.Code.Name())
+					return &domain.UnmappedDatabaseError{Message: pqErr.Message}
+			}
+		}
+		return &domain.UnmappedDatabaseError{ Message: err.Error() }
+
+	}
+	defer query.Close()
+
+	err = tx.Commit()
+	if err != nil { 
+		tx.Rollback()
+		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+		return &domain.DatabaseTransactionError{Message: err.Error()}
+	}
+
+	log.Println("SQL query:", statement)
+
+	return nil
+}
+
+func (s *service) GetAllUsers() ([]domain.User, error) {
+	tx, err := s.db.Begin()
+	if err != nil { return nil, &domain.DatabaseTransactionError{Message: err.Error()} }
+
+	statement := 
+	`
+	SELECT u.id, u.username, u.email
+	FROM users u 
+	LEFT JOIN user_deletes ud on u.id = ud.user_id
+	WHERE ud.user_id is NULL
+	`
+
+	query, err := tx.Prepare(statement)
+	if err != nil { 
+		tx.Rollback()
+		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
+		log.Println(errorMessage)
+		return nil, &domain.DatabaseTransactionError{Message: err.Error()}
 	}
 
 	rows, err := query.Query()
@@ -132,7 +189,7 @@ func (s *service) GetAllUsers() ([]domain.User, error) {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
-		return nil, err
+		return nil, &domain.DatabaseTransactionError{Message: err.Error()}
 	}
 
 	log.Println("SQL query:", statement)
@@ -140,9 +197,8 @@ func (s *service) GetAllUsers() ([]domain.User, error) {
 }
 
 func (s *service) InsertNewUser(user domain.User) (int, error) {
-
 	tx, err := s.db.Begin()
-	if err != nil { log.Fatal(err) }
+	if err != nil { return 0, &domain.DatabaseTransactionError{Message: err.Error()} }
 
 	statement := "INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id"
 
@@ -151,7 +207,7 @@ func (s *service) InsertNewUser(user domain.User) (int, error) {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to prepare the SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
-		return 0, err
+		return 0, &domain.DatabaseTransactionError{Message: err.Error()}
 	}
 	defer query.Close()
 
@@ -180,7 +236,7 @@ func (s *service) InsertNewUser(user domain.User) (int, error) {
 		tx.Rollback()
 		errorMessage := fmt.Sprintf("Failed to commit the prepared SQL statement. [Reason]: %v", err)
 		log.Println(errorMessage)
-		return 0, err
+		return 0, &domain.DatabaseTransactionError{Message: err.Error()}
 	}
 
 	log.Println("SQL query:", statement)

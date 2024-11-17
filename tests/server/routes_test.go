@@ -106,6 +106,116 @@ func TestGetAllUsersFailure(t *testing.T) {
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 
+func TestDeleteUserHandlerSuccess(t *testing.T) {
+	userDeletion := domain.UserDeletion{
+		UserId: 1,
+	}
+
+	service := new(testMocks.MockDBService)
+	service.On("SoftDeleteUser", mock.Anything).Return(nil)
+
+	s := &sv.Server{
+		Port: 8080,
+		Db: service,
+	}
+	r := gin.New()
+	r.DELETE("/user", s.DeleteUserHandler)
+
+	jsonData, err := json.Marshal(userDeletion)
+	if err != nil {
+		log.Fatalf("Error marshalling payload: %v", err)
+	}
+
+	// Create a test HTTP request
+	req, err := http.NewRequest("DELETE", "/user", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	// Serve the HTTP request
+	r.ServeHTTP(rr, req)
+
+	expectedStatusCode := http.StatusNoContent
+	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
+	assert.Empty(t, rr.Body.String(), fmt.Sprintf("Expected response body to be empty. [actual]: %v", rr.Body.String()))
+}
+
+func TestDeleteUserHandlerUniqueConstraintFailure(t *testing.T) {
+	userDeletion := domain.UserDeletion{
+		UserId: 1,
+	}
+
+	service := new(testMocks.MockDBService)
+	service.On("SoftDeleteUser", mock.Anything).Return(&domain.UniqueConstraintDatabaseError{Message: "some issue"})
+
+	s := &sv.Server{
+		Port: 8080,
+		Db: service,
+	}
+	r := gin.New()
+	r.DELETE("/user", s.DeleteUserHandler)
+
+	jsonData, err := json.Marshal(userDeletion)
+	if err != nil {
+		log.Fatalf("Error marshalling payload: %v", err)
+	}
+
+	// Create a test HTTP request
+	req, err := http.NewRequest("DELETE", "/user", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	// Serve the HTTP request
+	r.ServeHTTP(rr, req)
+
+	expectedStatusCode := http.StatusBadRequest
+	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
+	expected := "{\"error\":\"Unable to delete this user as they have already been deleted\"}"
+	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
+}
+
+func TestDeleteUserHandlerUserNotFoundFailure(t *testing.T) {
+	userDeletion := domain.UserDeletion{
+		UserId: 1,
+	}
+
+	service := new(testMocks.MockDBService)
+	service.On("SoftDeleteUser", mock.Anything).Return(&domain.UserNotFoundError{Message: "some issue"})
+
+	s := &sv.Server{
+		Port: 8080,
+		Db: service,
+	}
+	r := gin.New()
+	r.DELETE("/user", s.DeleteUserHandler)
+
+	jsonData, err := json.Marshal(userDeletion)
+	if err != nil {
+		log.Fatalf("Error marshalling payload: %v", err)
+	}
+
+	// Create a test HTTP request
+	req, err := http.NewRequest("DELETE", "/user", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	// Serve the HTTP request
+	r.ServeHTTP(rr, req)
+
+	expectedStatusCode := http.StatusBadRequest
+	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
+	expected := "{\"error\":\"Unable to delete this user as they do not exist\"}"
+	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
+}
+
 func TestInsertNewUserHandlerSuccess(t *testing.T) {
 	user := domain.User{
 		ID: 0,
@@ -142,7 +252,7 @@ func TestInsertNewUserHandlerSuccess(t *testing.T) {
 
 	expectedStatusCode := http.StatusCreated
 	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
-	expected := "10"
+	expected := "{\"success\":10}"
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 
@@ -184,7 +294,7 @@ func TestInsertNewUserHandlerDuplicateEmailAddressFailure(t *testing.T) {
 
 	expectedStatusCode := http.StatusInternalServerError
 	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
-	expected := `{"Message":"This email is not unique"}`
+	expected := "{\"error\":\"This email is not unique\"}"
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 

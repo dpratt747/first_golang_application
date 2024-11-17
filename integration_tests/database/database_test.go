@@ -246,3 +246,100 @@ func TestGetAllUsersSuccess(t *testing.T) {
 	
 	assert.Equal(t, 2, len(getAllUsersResponse), "expected GetAllUsers() to return a list of length equal to 2")
 }
+
+func TestGetAllUsersTombstoneSuccess(t *testing.T) {
+	userForInsertion1 := domain.User{
+		Username: "test user 1",
+		Email: "email1@email.com",
+	}
+
+	userForInsertion2 := domain.User{
+		Username: "test user 2",
+		Email: "email2@email.com",
+	}
+
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	underTest := db.New(dataSourceName)
+
+	sqlDb, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		log.Fatal(err) 
+	}
+
+	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
+		log.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		t.Log("Cleaning up after test")
+		err := goose.DownTo(sqlDb, "../../migrations", 0)
+		if err != nil {
+			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
+			t.Log(message)
+		}
+		sqlDb.Close()
+	})
+
+	_, err = underTest.InsertNewUser(userForInsertion1)
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	userId, err := underTest.InsertNewUser(userForInsertion2)
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+
+	// insert into tombstone with the userId above
+	stmt := "INSERT INTO user_deletes(user_id) VALUES($1)"
+	_, err = sqlDb.Exec(stmt, userId)
+	if err != nil { log.Fatal(err) } 
+	getAllUsersResponse, _ := underTest.GetAllUsers()
+	
+	assert.Equal(t, 1, len(getAllUsersResponse), "expected GetAllUsers() to return a list of length equal to 1")
+}
+
+func TestSoftDeleteUserSuccess(t *testing.T) {
+	userForInsertion := domain.User{
+		Username: "test user 1",
+		Email: "email1@email.com",
+	}
+
+	dataSourceName := func(user, password, dbName, port, host string) string {
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
+	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+
+	underTest := db.New(dataSourceName)
+
+	sqlDb, err := sql.Open("postgres", dataSourceName)
+	if err != nil {
+		log.Fatal(err) 
+	}
+
+	if err := goose.Up(sqlDb, "../../migrations"); err != nil {
+		log.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		t.Log("Cleaning up after test")
+		err := goose.DownTo(sqlDb, "../../migrations", 0)
+		if err != nil {
+			message := fmt.Sprintf("Error whilst cleaning migration: %v", err)
+			t.Log(message)
+		}
+		sqlDb.Close()
+	})
+
+	userId, err:= underTest.InsertNewUser(userForInsertion)
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	err = underTest.SoftDeleteUser(userId)
+	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+
+	
+	query := "SELECT COUNT(*) FROM user_deletes ud WHERE ud.user_id = $1"
+	var count int
+	err = sqlDb.QueryRow(query, userId).Scan(&count)
+	if err != nil { log.Fatal(err) }
+	
+	assert.Equal(t, 1, count, "expected SoftDeleteUser() to persist 1 row to the user_deletes table")
+}
+
+

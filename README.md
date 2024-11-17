@@ -36,10 +36,8 @@ go mod init <your_module_name>
 
 ```bash
 cd migrations
-```
 
-```bash
-goose -s create new_user_table.sql
+goose -s create new_user_table sql
 ```
 
 `go.sum` Is generated and updated automatically. It records the expected cryptographic checksums of the content of specific module versions, ensuring that future downloads of these modules are consistent and secure
@@ -155,6 +153,3 @@ make test
 ```bash
 make itest
 ```
----
-## TODOs:
-* implement tombstone for user deletion [here](https://www.jamestharpe.com/tombstone-pattern/)

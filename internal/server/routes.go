@@ -18,6 +18,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.GET("/users", s.GetAllUsersHandler)
 
+	r.DELETE("/user", s.DeleteUserHandler)
+
 	return r
 }
 
@@ -31,6 +33,29 @@ func (s *Server) GetAllUsersHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+func (s *Server) DeleteUserHandler(c *gin.Context) {
+
+	var userDeletionRequest domain.UserDeletion
+	if err := c.ShouldBindJSON(&userDeletionRequest); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := s.Db.SoftDeleteUser(userDeletionRequest.UserId)
+	switch err.(type) {
+		case *domain.UniqueConstraintDatabaseError:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to delete this user as they have already been deleted"})
+			return
+		case *domain.UserNotFoundError:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to delete this user as they do not exist"})
+			return
+		default:
+			c.JSON(http.StatusNoContent, gin.H{})
+			return
+	}
+}
+
+
 func (s *Server) InsertNewUserHandler(c *gin.Context) {
 	
 	var newUser domain.User
@@ -43,10 +68,10 @@ func (s *Server) InsertNewUserHandler(c *gin.Context) {
 	userId, err := s.Db.InsertNewUser(newUser)
 	switch err.(type) {
 		case *domain.UniqueConstraintDatabaseError:
-			c.JSON(http.StatusInternalServerError, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		default:
-			c.JSON(http.StatusCreated, userId)
+			c.JSON(http.StatusCreated, gin.H{"success": userId})
 			return
 	}
 }
