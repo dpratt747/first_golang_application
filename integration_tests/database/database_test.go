@@ -26,8 +26,8 @@ import (
 
 var (
 	containerPort string
-	containerHost  string
-	envPath string = "../../.env"
+	containerHost string
+	envPath       string = "../../.env"
 )
 
 func randomString(n int) string {
@@ -41,7 +41,7 @@ func randomString(n int) string {
 
 func mustStartPostgresContainer() (func(context.Context) error, error) {
 
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	var (
 		dbName = postgresDb
@@ -95,11 +95,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestNew(t *testing.T) {
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)
 
 	srv := db.New(dataSourceName)
 	assert.NotEqual(t, nil, srv, "New() returned nil")
@@ -111,11 +111,11 @@ func TestInsertNewUserSuccess(t *testing.T) {
 		Email:    "test@email.com",
 	}
 
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)
 
 	underTest := db.New(dataSourceName)
 
@@ -163,11 +163,11 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 		Email:    email,
 	}
 
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)		
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)
 
 	underTest := db.New(dataSourceName)
 
@@ -208,11 +208,11 @@ func TestGetAllUsersSuccess(t *testing.T) {
 		Email:    "email2@email.com",
 	}
 
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)
 
 	underTest := db.New(dataSourceName)
 
@@ -256,11 +256,11 @@ func TestGetAllUsersTombstoneSuccess(t *testing.T) {
 		Email:    "email2@email.com",
 	}
 
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)
 	underTest := db.New(dataSourceName)
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
@@ -304,11 +304,11 @@ func TestSoftDeleteUserSuccess(t *testing.T) {
 		Email:    "email1@email.com",
 	}
 
-	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath)
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)
 
 	underTest := db.New(dataSourceName)
 
