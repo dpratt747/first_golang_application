@@ -68,10 +68,10 @@ func (s *Server) InsertNewUserHandler(c *gin.Context) {
 	userId, err := s.Db.InsertNewUser(newUser)
 	switch err.(type) {
 		case *domain.UniqueConstraintDatabaseError:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "cannot insert user as this email is already used"})
 			return
 		default:
-			c.JSON(http.StatusCreated, gin.H{"success": userId})
+			c.JSON(http.StatusCreated, gin.H{"userId": userId})
 			return
 	}
 }

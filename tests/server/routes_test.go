@@ -252,7 +252,7 @@ func TestInsertNewUserHandlerSuccess(t *testing.T) {
 
 	expectedStatusCode := http.StatusCreated
 	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
-	expected := "{\"success\":10}"
+	expected := "{\"userId\":10}"
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 
@@ -292,9 +292,9 @@ func TestInsertNewUserHandlerDuplicateEmailAddressFailure(t *testing.T) {
 	// Serve the HTTP request
 	r.ServeHTTP(rr, req)
 
-	expectedStatusCode := http.StatusInternalServerError
+	expectedStatusCode := http.StatusBadRequest
 	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
-	expected := "{\"error\":\"This email is not unique\"}"
+	expected := "{\"error\":\"cannot insert user as this email is already used\"}"
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 
