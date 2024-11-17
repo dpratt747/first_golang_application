@@ -42,7 +42,6 @@ curl --request GET \
 curl --request DELETE \
   --url http://127.0.0.1:8080/user \
   --header 'Content-Type: application/json' \
-  --header 'User-Agent: insomnia/10.1.1' \
   --data '{
 	"userid": 3
 }'
