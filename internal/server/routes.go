@@ -26,7 +26,13 @@ func (s *Server) GetAllUsersHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	} else {
+		c.JSON(http.StatusOK, users)
+		return
+	}
 }
 
 func (s *Server) DeleteUserHandler(c *gin.Context) {

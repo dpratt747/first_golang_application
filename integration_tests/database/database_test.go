@@ -11,7 +11,7 @@ import (
 
 	db "db_access/internal/database"
 	"db_access/internal/domain"
-	"db_access/internal/enums"
+	"db_access/internal/environment"
 	"math/rand"
 
 	_ "github.com/lib/pq" // Import the PostgreSQL driver
@@ -26,7 +26,8 @@ import (
 
 var (
 	containerPort string
-	contaierHost  string
+	containerHost  string
+	envPath string = "../../.env"
 )
 
 func randomString(n int) string {
@@ -39,10 +40,13 @@ func randomString(n int) string {
 }
 
 func mustStartPostgresContainer() (func(context.Context) error, error) {
+
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	var (
-		dbName = string(enums.Database)
-		dbPwd  = string(enums.Password)
-		dbUser = string(enums.Username)
+		dbName = postgresDb
+		dbPwd  = postgresPassword
+		dbUser = postgresUser
 	)
 
 	dbContainer, err := postgres.Run(
@@ -70,7 +74,7 @@ func mustStartPostgresContainer() (func(context.Context) error, error) {
 		return dbContainer.Terminate, err
 	}
 
-	contaierHost = dbHost
+	containerHost = dbHost
 	containerPort = strings.ReplaceAll(string(dbPort), "tcp", "")
 	containerPort = strings.ReplaceAll(containerPort, "/", "")
 
@@ -86,14 +90,16 @@ func TestMain(m *testing.M) {
 	m.Run()
 
 	if teardown != nil && teardown(context.Background()) != nil {
-		log.Fatalf("could not teardown postgres container: %v", err)
+		log.Fatalf("could not tear down postgres container: %v", err)
 	}
 }
 
 func TestNew(t *testing.T) {
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
 
 	srv := db.New(dataSourceName)
 	assert.NotEqual(t, nil, srv, "New() returned nil")
@@ -105,9 +111,11 @@ func TestInsertNewUserSuccess(t *testing.T) {
 		Email:    "test@email.com",
 	}
 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
 
 	underTest := db.New(dataSourceName)
 
@@ -131,7 +139,7 @@ func TestInsertNewUserSuccess(t *testing.T) {
 	})
 
 	userId, err := underTest.InsertNewUser(userForInsertion)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 
 	var count int
 	err = sqlDb.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
@@ -155,9 +163,11 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 		Email:    email,
 	}
 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)		
 
 	underTest := db.New(dataSourceName)
 
@@ -181,7 +191,7 @@ func TestInsertNewUserDuplicateUserEmailFailure(t *testing.T) {
 	})
 
 	_, err = underTest.InsertNewUser(userForInsertion1)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 	_, err = underTest.InsertNewUser(userForInsertion2)
 	_, isUniqueConstraintError := err.(*domain.UniqueConstraintDatabaseError)
 	assert.True(t, isUniqueConstraintError, "Expected an UniqueConstraintDatabaseError when inserting a user with an already existing email address")
@@ -198,9 +208,11 @@ func TestGetAllUsersSuccess(t *testing.T) {
 		Email:    "email2@email.com",
 	}
 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
 
 	underTest := db.New(dataSourceName)
 
@@ -224,9 +236,9 @@ func TestGetAllUsersSuccess(t *testing.T) {
 	})
 
 	_, err = underTest.InsertNewUser(userForInsertion1)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 	_, err = underTest.InsertNewUser(userForInsertion2)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 
 	getAllUsersResponse, _ := underTest.GetAllUsers()
 
@@ -244,10 +256,11 @@ func TestGetAllUsersTombstoneSuccess(t *testing.T) {
 		Email:    "email2@email.com",
 	}
 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
-
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
 	underTest := db.New(dataSourceName)
 
 	sqlDb, err := sql.Open("postgres", dataSourceName)
@@ -270,9 +283,9 @@ func TestGetAllUsersTombstoneSuccess(t *testing.T) {
 	})
 
 	_, err = underTest.InsertNewUser(userForInsertion1)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 	userId, err := underTest.InsertNewUser(userForInsertion2)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 
 	// insert into tombstone with the userId above
 	stmt := "INSERT INTO user_deletes(user_id) VALUES($1)"
@@ -291,9 +304,11 @@ func TestSoftDeleteUserSuccess(t *testing.T) {
 		Email:    "email1@email.com",
 	}
 
+	_, _, _, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(envPath) 
+
 	dataSourceName := func(user, password, dbName, port, host string) string {
 		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), containerPort, contaierHost)
+	}(postgresUser, postgresPassword, postgresDb, containerPort, containerHost)	
 
 	underTest := db.New(dataSourceName)
 
@@ -317,9 +332,9 @@ func TestSoftDeleteUserSuccess(t *testing.T) {
 	})
 
 	userId, err := underTest.InsertNewUser(userForInsertion)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 	err = underTest.SoftDeleteUser(userId)
-	assert.Equal(t, nil, err, "Some error occured inserting the user. expected nil")
+	assert.Equal(t, nil, err, "Some error occurred inserting the user. expected nil")
 
 	query := "SELECT COUNT(*) FROM user_deletes ud WHERE ud.user_id = $1"
 	var count int

@@ -1,11 +1,11 @@
 ## <ins>Running locally</ins>
 
 ```bash
-docker-compose up -d postgres
+docker-compose up -d db
 ```
 
 ```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
+goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
 ```
 
 ```bash
@@ -15,7 +15,12 @@ make run
 ```bash
 make docker-run
 make migrate-up
-make run
+```
+
+and to close things:
+
+```bash
+make docker-down
 ```
 
 ---
@@ -58,7 +63,7 @@ curl --request DELETE \
 ### <ins>Undo migrations</ins>
 
 ```bash
-goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 ```
 
 ---

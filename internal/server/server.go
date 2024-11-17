@@ -5,14 +5,12 @@ import (
 	"log"
 	"net/http"
 
-	// "os"
-	// "strconv"
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 
 	"db_access/internal/database"
-	"db_access/internal/enums"
+	"db_access/internal/environment"
 )
 
 type Server struct {
@@ -21,24 +19,26 @@ type Server struct {
 }
 
 func New() *http.Server {
-	// todo: make these either config values or environment variables
-	port := 8080
-	host := "127.0.0.1"
+
+	appPort, dbHost, dbPort, postgresUser, postgresPassword, postgresDb := environment.GetEnvVar(".env") 
 
 	dataSourceName := func(user, password, dbName, port, host string) string {
-		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, port, host)
-	}(string(enums.Username), string(enums.Password), string(enums.Database), string(enums.Port), string(enums.Host))
+		return fmt.Sprintf("user=%s password=%s dbname=%s port=%s host=%s sslmode=disable", user, password, dbName, dbPort, host)
+	}(postgresUser, postgresPassword, postgresDb, dbPort, dbHost)	
 
 	db := database.New(dataSourceName)
+	message := fmt.Sprintf("Database connection on: %v", dataSourceName)
+	log.Println(message)
+
 
 	NewServer := &Server{
-		Port: port,
+		Port: appPort,
 		Db:   db,
 	}
 
-	address := fmt.Sprintf("%v:%d", host, NewServer.Port)
+	address := fmt.Sprintf(":%d", NewServer.Port)
 
-	message := fmt.Sprintf("Server has started on: %v", address)
+	message = fmt.Sprintf("Server has started on: %v", address)
 	log.Println(message)
 
 	server := &http.Server{

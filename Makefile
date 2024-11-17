@@ -4,20 +4,20 @@
 all: build test
 
 migrate-up:
-	@goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" up
+	@goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" up
 
 migrate-down:
-	@goose -dir ./migrations postgres "user=postgres password=postgres port=6432 host=localhost dbname=golang_db sslmode=disable" down-to 0
+	@goose -dir ./migrations postgres "user=postgres password=postgres port=5432 host=localhost dbname=golang_db sslmode=disable" down-to 0
 
 build:
 	@echo "Building..."
 	
 	
-	@go build -o main cmd/api/main.go
+	@go build -o main main.go
 
 # Run the application
 run:
-	@go run cmd/api/main.go
+	@go run main.go
 
 # Start DB container in detached mode
 docker-run:
