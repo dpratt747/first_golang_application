@@ -53,11 +53,8 @@ curl --request GET \
 
 ```bash
 curl --request DELETE \
-  --url http://127.0.0.1:8080/user \
-  --header 'Content-Type: application/json' \
-  --data '{
-	"userid": 3
-}'
+  --url http://127.0.0.1:8080/user/2 \
+  --header 'Content-Type: application/json'
 ```
 
 ---

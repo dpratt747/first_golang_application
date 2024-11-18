@@ -87,9 +87,6 @@ func TestGetAllUsersFailure(t *testing.T) {
 }
 
 func TestDeleteUserHandlerSuccess(t *testing.T) {
-	userDeletion := domain.UserDeletion{
-		UserId: 1,
-	}
 
 	service := new(testMocks.MockDBService)
 	service.On("SoftDeleteUser", mock.Anything).Return(nil)
@@ -99,15 +96,10 @@ func TestDeleteUserHandlerSuccess(t *testing.T) {
 		Db:   service,
 	}
 	r := gin.New()
-	r.DELETE("/user", s.DeleteUserHandler)
-
-	jsonData, err := json.Marshal(userDeletion)
-	if err != nil {
-		log.Fatalf("Error marshalling payload: %v", err)
-	}
+	r.DELETE("/user/:userId", s.DeleteUserHandler)
 
 	// Create a test HTTP request
-	req, err := http.NewRequest("DELETE", "/user", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("DELETE", "/user/1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,9 +115,6 @@ func TestDeleteUserHandlerSuccess(t *testing.T) {
 }
 
 func TestDeleteUserHandlerUniqueConstraintFailure(t *testing.T) {
-	userDeletion := domain.UserDeletion{
-		UserId: 1,
-	}
 
 	service := new(testMocks.MockDBService)
 	service.On("SoftDeleteUser", mock.Anything).Return(&domain.UniqueConstraintDatabaseError{Message: "some issue"})
@@ -135,15 +124,10 @@ func TestDeleteUserHandlerUniqueConstraintFailure(t *testing.T) {
 		Db:   service,
 	}
 	r := gin.New()
-	r.DELETE("/user", s.DeleteUserHandler)
-
-	jsonData, err := json.Marshal(userDeletion)
-	if err != nil {
-		log.Fatalf("Error marshalling payload: %v", err)
-	}
+	r.DELETE("/user/:userId", s.DeleteUserHandler)
 
 	// Create a test HTTP request
-	req, err := http.NewRequest("DELETE", "/user", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("DELETE", "/user/12", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,10 +143,36 @@ func TestDeleteUserHandlerUniqueConstraintFailure(t *testing.T) {
 	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
 }
 
-func TestDeleteUserHandlerUserNotFoundFailure(t *testing.T) {
-	userDeletion := domain.UserDeletion{
-		UserId: 1,
+func TestDeleteUserHandlerIdPathNotAnIntFailure(t *testing.T) {
+
+	service := new(testMocks.MockDBService)
+	service.AssertNotCalled(t, "SoftDeleteUser")
+
+	s := &sv.Server{
+		Port: 8080,
+		Db:   service,
 	}
+	r := gin.New()
+	r.DELETE("/user/:userId", s.DeleteUserHandler)
+
+	// Create a test HTTP request
+	req, err := http.NewRequest("DELETE", "/user/string", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder to record the response
+	rr := httptest.NewRecorder()
+	// Serve the HTTP request
+	r.ServeHTTP(rr, req)
+
+	expectedStatusCode := http.StatusBadRequest
+	assert.Equal(t, expectedStatusCode, rr.Code, fmt.Sprintf("Expected response status to equal %v. [actual]: %v", expectedStatusCode, rr.Code))
+	expected := "{\"error\":\"Invalid userId format. Must be an integer.\"}"
+	assert.Equal(t, expected, rr.Body.String(), fmt.Sprintf("Expected response body to equal %v. [actual]: %v", expected, rr.Body.String()))
+}
+
+func TestDeleteUserHandlerUserNotFoundFailure(t *testing.T) {
 
 	service := new(testMocks.MockDBService)
 	service.On("SoftDeleteUser", mock.Anything).Return(&domain.UserNotFoundError{Message: "some issue"})
@@ -172,15 +182,10 @@ func TestDeleteUserHandlerUserNotFoundFailure(t *testing.T) {
 		Db:   service,
 	}
 	r := gin.New()
-	r.DELETE("/user", s.DeleteUserHandler)
-
-	jsonData, err := json.Marshal(userDeletion)
-	if err != nil {
-		log.Fatalf("Error marshalling payload: %v", err)
-	}
+	r.DELETE("/user/:userId", s.DeleteUserHandler)
 
 	// Create a test HTTP request
-	req, err := http.NewRequest("DELETE", "/user", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("DELETE", "/user/12", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,20 +3,21 @@ package server
 import (
 	"db_access/internal/domain"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
-	r := gin.Default()
+	router := gin.Default()
 
-	r.POST("/user", s.InsertNewUserHandler)
+	router.POST("/user", s.InsertNewUserHandler)
 
-	r.GET("/users", s.GetAllUsersHandler)
+	router.GET("/users", s.GetAllUsersHandler)
 
-	r.DELETE("/user", s.DeleteUserHandler)
+	router.DELETE("/user/:userId", s.DeleteUserHandler)
 
-	return r
+	return router
 }
 
 func (s *Server) GetAllUsersHandler(c *gin.Context) {
@@ -36,14 +37,15 @@ func (s *Server) GetAllUsersHandler(c *gin.Context) {
 }
 
 func (s *Server) DeleteUserHandler(c *gin.Context) {
+	userIdParam := c.Param("userId")
 
-	var userDeletionRequest domain.UserDeletion
-	if err := c.ShouldBindJSON(&userDeletionRequest); err != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+	userId, err := strconv.Atoi(userIdParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid userId format. Must be an integer."})
 		return
 	}
 
-	err := s.Db.SoftDeleteUser(userDeletionRequest.UserId)
+	err = s.Db.SoftDeleteUser(userId)
 	switch err.(type) {
 	case *domain.UniqueConstraintDatabaseError:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unable to delete this user as they have already been deleted"})
